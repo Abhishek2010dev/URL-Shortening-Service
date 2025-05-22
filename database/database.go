@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS shorten (
 );
 `
 
-func New(url string) *sql.DB {
+func Connect() *sql.DB {
+	url := "postgresql://postgres@localhost:5432/shorten?sslmode=disable"
 	db, err := sql.Open("postgres", url)
 	if err != nil {
 		log.Fatalf("failed to open connection: %s", err)
