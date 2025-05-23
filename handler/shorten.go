@@ -63,3 +63,14 @@ func (s *Shorten) GetURLStatistics(c fiber.Ctx) error {
 	}
 	return c.JSON(responseBody)
 }
+
+func (s *Shorten) Delete(c fiber.Ctx) error {
+	shortCode := c.Params("short_code")
+	if err := s.repo.Delete(c.Context(), shortCode); err != nil {
+		if errors.Is(err, repository.ErrShortCodeNotFound) {
+			return fiber.ErrNotFound
+		}
+		return err
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}

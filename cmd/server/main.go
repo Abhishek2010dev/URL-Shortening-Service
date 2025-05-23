@@ -23,6 +23,7 @@ func main() {
 	app.Post("/shorten", shortenHandler.Create)
 	app.Get("/shorten/:short_code", shortenHandler.GetByShortCode)
 	app.Get("/shorten/:short_code/stats", shortenHandler.GetURLStatistics)
+	app.Delete("/shorten/:short_code", shortenHandler.Delete)
 
 	log.Fatal(app.Listen(":3000"))
 }
