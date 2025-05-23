@@ -2,12 +2,16 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/Abhishek2010dev/URL-Shortening-Service/dto"
 	"github.com/Abhishek2010dev/URL-Shortening-Service/model"
 	"github.com/jmoiron/sqlx"
 )
+
+var ErrShortenNotFound = errors.New("Shorten not found")
 
 type CreateShortenPayload struct {
 	Url       string `db:"url"`
@@ -59,6 +63,9 @@ func (shortenrepo *shortenRepo) FindByShortCode(ctx context.Context, shortCode s
 
 	stmt, err := shortenrepo.db.PreparexContext(ctx, query)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrShortenNotFound
+		}
 		return nil, fmt.Errorf("failed to prepare query: %w", err)
 	}
 
@@ -71,7 +78,26 @@ func (shortenrepo *shortenRepo) FindByShortCode(ctx context.Context, shortCode s
 }
 
 func (shortenrepo *shortenRepo) FindByShortCodeWithAccessCount(ctx context.Context, shortCode string) (*model.ShortenWithAccessCount, error) {
-	panic("not implemented") // TODO: Implement
+	query := `
+		SELECT id, url, short_code, access_count, created_at, updated_at FROM shorten 
+		WHERE short_code = $1
+	`
+
+	stmt, err := shortenrepo.db.PreparexContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare query: %w", err)
+	}
+
+	var shortenWithAccessCount model.ShortenWithAccessCount
+	if err := stmt.GetContext(ctx, &shortenWithAccessCount, shortCode); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrShortenNotFound
+		}
+		return nil, fmt.Errorf("failed to get shorten (short_code: %v): %w", shortCode, err)
+	}
+
+	return &shortenWithAccessCount, nil
+
 }
 func (shortenrepo *shortenRepo) Delete(ctx context.Context, shortCode string) error {
 	panic("not implemented") // TODO: Implement
