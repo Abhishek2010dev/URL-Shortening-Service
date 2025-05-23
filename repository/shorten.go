@@ -20,7 +20,6 @@ type Shorten interface {
 	FindByShortCodeWithAccessCount(ctx context.Context, shortCode string) (*model.ShortenWithAccessCount, error)
 	Delete(ctx context.Context, shortCode string) error
 	Update(ctx context.Context, shortCode string, payload dto.ShortenPayload) (*model.Shorten, error)
-	FindAll(ctx context.Context) ([]model.Shorten, error)
 	IncrementAccessCount(ctx context.Context, shortCode string) error
 }
 
@@ -38,23 +37,39 @@ func (shortenrepo *shortenRepo) Create(ctx context.Context, payload CreateShorte
 	        VALUES (:url, :short_code)
 		RETURNING id, url, short_code, created_at, updated_at
 	`
-	var shorten model.Shorten
-
 	stmt, err := shortenrepo.db.PrepareNamedContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare query: %w", err)
 	}
 	defer stmt.Close()
 
+	var shorten model.Shorten
 	if err = stmt.GetContext(ctx, &shorten, payload); err != nil {
 		return nil, fmt.Errorf("failed to create shorten url: %w", err)
 	}
 
 	return &shorten, nil
 }
+
 func (shortenrepo *shortenRepo) FindByShortCode(ctx context.Context, shortCode string) (*model.Shorten, error) {
-	panic("not implemented") // TODO: Implement
+	query := `
+		SELECT id, url, short_code, created_at, updated_at FROM shorten 
+		WHERE short_code = $1
+	`
+
+	stmt, err := shortenrepo.db.PreparexContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare query: %w", err)
+	}
+
+	var shorten model.Shorten
+	if err := stmt.GetContext(ctx, &shorten, shortCode); err != nil {
+		return nil, fmt.Errorf("failed to get shorten (short_code: %v): %w", shortCode, err)
+	}
+
+	return &shorten, nil
 }
+
 func (shortenrepo *shortenRepo) FindByShortCodeWithAccessCount(ctx context.Context, shortCode string) (*model.ShortenWithAccessCount, error) {
 	panic("not implemented") // TODO: Implement
 }
@@ -62,9 +77,6 @@ func (shortenrepo *shortenRepo) Delete(ctx context.Context, shortCode string) er
 	panic("not implemented") // TODO: Implement
 }
 func (shortenrepo *shortenRepo) Update(ctx context.Context, shortCode string, payload dto.ShortenPayload) (*model.Shorten, error) {
-	panic("not implemented") // TODO: Implement
-}
-func (shortenrepo *shortenRepo) FindAll(ctx context.Context) ([]model.Shorten, error) {
 	panic("not implemented") // TODO: Implement
 }
 func (shortenrepo *shortenRepo) IncrementAccessCount(ctx context.Context, shortCode string) error {
