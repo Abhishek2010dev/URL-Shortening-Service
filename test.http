@@ -17,3 +17,11 @@ GET http://localhost:3000/shorten/c134b737-555f-45bf-822c-c198b8e025c0/stats
 
 DELETE  http://localhost:3000/shorten/c134b737-555f-45bf-822c-c198b8e025c0
 
+### 
+
+PATCH http://localhost:3000/shorten/c134b737-555f-45bf-822c-c198b8e025c0
+Content-Type:  application/json
+
+{
+	"url": "www.youtube.com"
+}

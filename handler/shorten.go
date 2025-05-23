@@ -74,3 +74,30 @@ func (s *Shorten) Delete(c fiber.Ctx) error {
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }
+
+func (s *Shorten) Update(c fiber.Ctx) error {
+	shortCode := c.Params("short_code")
+
+	var payload ShortenPayload
+	if err := c.Bind().JSON(&payload); err != nil {
+		return err
+	}
+	if !utils.IsValidateUrl(payload.Url) {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid url format")
+	}
+
+	updatePayload := repository.ShortenPayload{
+		ShortCode: shortCode,
+		URL:       payload.Url,
+	}
+
+	responseBody, err := s.repo.Update(c.Context(), updatePayload)
+	if err != nil {
+		if errors.Is(err, repository.ErrShortCodeNotFound) {
+			return fiber.ErrNotFound
+		}
+		return err
+	}
+
+	return c.JSON(responseBody)
+}
