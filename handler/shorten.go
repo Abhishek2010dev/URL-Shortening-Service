@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+
 	"github.com/Abhishek2010dev/URL-Shortening-Service/repository"
 	"github.com/Abhishek2010dev/URL-Shortening-Service/utils"
 	"github.com/gofiber/fiber/v3"
@@ -36,4 +38,16 @@ func (s *Shorten) Create(c fiber.Ctx) error {
 		return err
 	}
 	return c.Status(fiber.StatusCreated).JSON(shorten)
+}
+
+func (s *Shorten) GetByShortCode(c fiber.Ctx) error {
+	shortCode := c.Params("short_code")
+	responseBody, err := s.repo.FindByShortCode(c.Context(), shortCode)
+	if err != nil {
+		if errors.Is(err, repository.ErrShortCodeNotFound) {
+			return fiber.ErrNotFound
+		}
+		return err
+	}
+	return c.JSON(responseBody)
 }

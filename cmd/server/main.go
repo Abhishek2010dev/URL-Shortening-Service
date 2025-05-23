@@ -21,6 +21,7 @@ func main() {
 	shortenHandler := handler.NewShorten(shortenRepo)
 
 	app.Post("/shorten", shortenHandler.Create)
+	app.Get("/shorten/:short_code", shortenHandler.GetByShortCode)
 
 	log.Fatal(app.Listen(":3000"))
 }
