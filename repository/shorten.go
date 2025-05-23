@@ -145,4 +145,18 @@ func (shortenrepo *shortenRepo) Update(ctx context.Context, payload ShortenPaylo
 func (shortenrepo *shortenRepo) IncrementAccessCount(ctx context.Context, shortCode string) error {
 	query := "UPDATE shorten SET access_count = access_count + 1 WHERE short_code = $1"
 
+	stmt, err := shortenrepo.db.PrepareContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare query: %w", err)
+	}
+	defer stmt.Close()
+
+	if _, err := stmt.ExecContext(ctx, shortCode); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrShortCodeNotFound
+		}
+		return fmt.Errorf("failed to increment access_count (short_code: %v): %w", shortCode, err)
+	}
+
+	return nil
 }
