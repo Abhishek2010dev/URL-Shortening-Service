@@ -11,7 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-var ErrShortenNotFound = errors.New("Shorten not found")
+var ErrShortCodeNotFound = errors.New("Shorten not found")
 
 type CreateShortenPayload struct {
 	Url       string `db:"url"`
@@ -91,7 +91,7 @@ func (shortenrepo *shortenRepo) FindByShortCodeWithAccessCount(ctx context.Conte
 	var shortenWithAccessCount model.ShortenWithAccessCount
 	if err := stmt.GetContext(ctx, &shortenWithAccessCount, shortCode); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrShortenNotFound
+			return nil, ErrShortCodeNotFound
 		}
 		return nil, fmt.Errorf("failed to get shorten (short_code: %v): %w", shortCode, err)
 	}
@@ -100,8 +100,23 @@ func (shortenrepo *shortenRepo) FindByShortCodeWithAccessCount(ctx context.Conte
 
 }
 func (shortenrepo *shortenRepo) Delete(ctx context.Context, shortCode string) error {
-	panic("not implemented") // TODO: Implement
+	query := "DELETE FROM shorten WHERE short_code = $1"
+
+	stmt, err := shortenrepo.db.PrepareContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare query: %w", err)
+	}
+
+	if _, err := stmt.Exec(shortCode); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrShortCodeNotFound
+		}
+		return fmt.Errorf("failed to delete shorten (short_code: %v): %w", shortCode, err)
+	}
+
+	return nil
 }
+
 func (shortenrepo *shortenRepo) Update(ctx context.Context, shortCode string, payload dto.ShortenPayload) (*model.Shorten, error) {
 	panic("not implemented") // TODO: Implement
 }
