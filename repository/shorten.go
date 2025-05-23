@@ -35,122 +35,99 @@ func NewShorten(db *sqlx.DB) Shorten {
 }
 
 func (r *shortenRepo) Create(ctx context.Context, payload ShortenPayload) (*model.Shorten, error) {
-	query := `
+	const query = `
         INSERT INTO shorten (url, short_code) 
         VALUES (:url, :short_code)
         RETURNING id, url, short_code, created_at, updated_at
     `
-	rows, err := r.db.NamedQueryContext(ctx, query, payload)
+	stmt, err := r.db.PrepareNamedContext(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute insert query: %w", err)
+		return nil, fmt.Errorf("prepare insert statement: %w", err)
 	}
-	defer rows.Close()
+	defer stmt.Close()
 
-	if rows.Next() {
-		var shorten model.Shorten
-		if err := rows.StructScan(&shorten); err != nil {
-			return nil, fmt.Errorf("failed to scan inserted row: %w", err)
-		}
-		return &shorten, nil
+	var shorten model.Shorten
+	if err := stmt.GetContext(ctx, &shorten, payload); err != nil {
+		return nil, fmt.Errorf("execute insert: %w", err)
 	}
-
-	return nil, fmt.Errorf("no row returned after insert")
+	return &shorten, nil
 }
 
 func (r *shortenRepo) FindByShortCode(ctx context.Context, shortCode string) (*model.Shorten, error) {
-	query := `
+	const query = `
         SELECT id, url, short_code, created_at, updated_at 
         FROM shorten 
         WHERE short_code = $1
     `
 	var shorten model.Shorten
-	err := r.db.GetContext(ctx, &shorten, query, shortCode)
-	if err != nil {
+	if err := r.db.GetContext(ctx, &shorten, query, shortCode); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrShortCodeNotFound
 		}
-		return nil, fmt.Errorf("failed to get shorten (short_code: %v): %w", shortCode, err)
+		return nil, fmt.Errorf("get shorten by short_code: %w", err)
 	}
-
 	return &shorten, nil
 }
 
 func (r *shortenRepo) FindByShortCodeWithAccessCount(ctx context.Context, shortCode string) (*model.ShortenWithAccessCount, error) {
-	query := `
+	const query = `
         SELECT id, url, short_code, access_count, created_at, updated_at 
         FROM shorten 
         WHERE short_code = $1
     `
 	var shorten model.ShortenWithAccessCount
-	err := r.db.GetContext(ctx, &shorten, query, shortCode)
-	if err != nil {
+	if err := r.db.GetContext(ctx, &shorten, query, shortCode); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrShortCodeNotFound
 		}
-		return nil, fmt.Errorf("failed to get shorten with access count (short_code: %v): %w", shortCode, err)
+		return nil, fmt.Errorf("get shorten with access count: %w", err)
 	}
-
 	return &shorten, nil
 }
 
 func (r *shortenRepo) Delete(ctx context.Context, shortCode string) error {
-	query := "DELETE FROM shorten WHERE short_code = $1"
+	const query = `DELETE FROM shorten WHERE short_code = $1`
 	result, err := r.db.ExecContext(ctx, query, shortCode)
 	if err != nil {
-		return fmt.Errorf("failed to execute delete query: %w", err)
+		return fmt.Errorf("delete shorten: %w", err)
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to retrieve affected rows: %w", err)
-	}
-
-	if rowsAffected == 0 {
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
 		return ErrShortCodeNotFound
 	}
-
 	return nil
 }
 
 func (r *shortenRepo) Update(ctx context.Context, payload ShortenPayload) (*model.Shorten, error) {
-	query := `
+	const query = `
         UPDATE shorten 
         SET url = :url 
         WHERE short_code = :short_code
         RETURNING id, url, short_code, created_at, updated_at
     `
-	rows, err := r.db.NamedQueryContext(ctx, query, payload)
+	stmt, err := r.db.PrepareNamedContext(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute update query: %w", err)
+		return nil, fmt.Errorf("prepare update statement: %w", err)
 	}
-	defer rows.Close()
+	defer stmt.Close()
 
-	if rows.Next() {
-		var shorten model.Shorten
-		if err := rows.StructScan(&shorten); err != nil {
-			return nil, fmt.Errorf("failed to scan updated row: %w", err)
+	var shorten model.Shorten
+	if err := stmt.GetContext(ctx, &shorten, payload); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrShortCodeNotFound
 		}
-		return &shorten, nil
+		return nil, fmt.Errorf("execute update: %w", err)
 	}
-
-	return nil, ErrShortCodeNotFound
+	return &shorten, nil
 }
 
 func (r *shortenRepo) IncrementAccessCount(ctx context.Context, shortCode string) error {
-	query := "UPDATE shorten SET access_count = access_count + 1 WHERE short_code = $1"
+	const query = `UPDATE shorten SET access_count = access_count + 1 WHERE short_code = $1`
 	result, err := r.db.ExecContext(ctx, query, shortCode)
 	if err != nil {
-		return fmt.Errorf("failed to execute increment query: %w", err)
+		return fmt.Errorf("increment access count: %w", err)
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to retrieve affected rows: %w", err)
-	}
-
-	if rowsAffected == 0 {
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
 		return ErrShortCodeNotFound
 	}
-
 	return nil
 }
