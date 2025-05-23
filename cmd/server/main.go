@@ -25,6 +25,7 @@ func main() {
 	app.Get("/shorten/:short_code/stats", shortenHandler.GetURLStatistics)
 	app.Delete("/shorten/:short_code", shortenHandler.Delete)
 	app.Patch("/shorten/:short_code", shortenHandler.Update)
+	app.Get("/:short_code", shortenHandler.Redirect)
 
 	log.Fatal(app.Listen(":3000"))
 }

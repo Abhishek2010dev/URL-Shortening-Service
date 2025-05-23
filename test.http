@@ -2,7 +2,7 @@ POST http://localhost:3000/shorten
 Content-Type: application/json
 
 {
-  "url": "www.google.com"
+	"url": "http://google.com"
 }
 
 ###
@@ -23,5 +23,5 @@ PATCH http://localhost:3000/shorten/c134b737-555f-45bf-822c-c198b8e025c0
 Content-Type:  application/json
 
 {
-	"url": "www.youtube.com"
+	"url": "http://youtube.com"
 }

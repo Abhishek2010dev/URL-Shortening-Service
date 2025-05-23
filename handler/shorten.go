@@ -101,3 +101,21 @@ func (s *Shorten) Update(c fiber.Ctx) error {
 
 	return c.JSON(responseBody)
 }
+
+func (s *Shorten) Redirect(c fiber.Ctx) error {
+	shortCode := c.Params("short_code")
+
+	shorten, err := s.repo.FindByShortCode(c.Context(), shortCode)
+	if err != nil {
+		if errors.Is(err, repository.ErrShortCodeNotFound) {
+			return fiber.ErrNotFound
+		}
+		return err
+	}
+
+	if err := s.repo.IncrementAccessCount(c.Context(), shortCode); err != nil {
+		return err
+	}
+
+	return c.Redirect().To(shorten.Url)
+}
