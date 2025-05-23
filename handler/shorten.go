@@ -51,3 +51,15 @@ func (s *Shorten) GetByShortCode(c fiber.Ctx) error {
 	}
 	return c.JSON(responseBody)
 }
+
+func (s *Shorten) GetURLStatistics(c fiber.Ctx) error {
+	shortCode := c.Params("short_code")
+	responseBody, err := s.repo.FindByShortCodeWithAccessCount(c.Context(), shortCode)
+	if err != nil {
+		if errors.Is(err, repository.ErrShortCodeNotFound) {
+			return fiber.ErrNotFound
+		}
+		return err
+	}
+	return c.JSON(responseBody)
+}
